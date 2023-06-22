@@ -32,7 +32,11 @@ func (n *cherr) Unwrap() error {
 	return n.cause
 }
 
-func Wrap(cause error) *cherr {
+func (n *cherr) AddContext(ctx string) {
+	n.context = append(n.context, ctx)
+}
+
+func Wrap(cause error) error {
 	err := &cherr{
 		cause: cause,
 	}
@@ -50,7 +54,7 @@ func Wrap(cause error) *cherr {
 
 type Result[T any] struct {
 	Value   T
-	failure *cherr
+	failure error
 }
 
 func (r *Result[T]) Failed() bool {
@@ -58,7 +62,7 @@ func (r *Result[T]) Failed() bool {
 }
 
 func (r *Result[T]) With(ctx string) *Result[T] {
-	r.failure.context = append(r.failure.context, ctx)
+	r.failure.(*cherr).AddContext(ctx)
 	return r
 }
 
