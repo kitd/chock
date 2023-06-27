@@ -8,11 +8,11 @@ Normal usage:
 import "github.com/kitd/chock"
 
 func someFunctionThatMightFail(arg0 string) chock.Result[int] {
-    intVal, err := external.IntFunction(arg0)
-    if err != nil {
+    if intVal, err := external.IntFunction(arg0); err != nil {
         return chock.Failure[int](err).Context(fmt.Sprintf("arg0=%s", arg0))
+    } else {
+        return chock.Success(intVal)
     }
-    return chock.Success(intVal)
 }
 
 func anotherFunction() chock.Result[int] {
@@ -24,7 +24,7 @@ func anotherFunction() chock.Result[int] {
 }
 ```
 
-Actual arrors are wrapped in an internal error that incorporates a stack trace, and allows context to be added before the result is returned, eg:
+Actual errors are wrapped in an internal error that incorporates a stack trace, and allows context to be added before the result is returned, eg:
 ```
     chock_test.go:33: An error has occurred
         Context:
