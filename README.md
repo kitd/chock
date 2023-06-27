@@ -2,7 +2,7 @@
 
 A Rust-like `Result[T]` handling package, that wraps either a value of type T, or an error.
 
-Actual arrors are wrapped in an internal error that incorporates a stack trace, and allows context to be added before the result is returned, eg:
+Normal usage:
 
 ```
 import "github.com/kitd/chock"
@@ -24,7 +24,7 @@ func anotherFunction() chock.Result[int] {
 }
 ```
 
-Result error logging looks something like:
+Actual arrors are wrapped in an internal error that incorporates a stack trace, and allows context to be added before the result is returned, eg:
 ```
     chock_test.go:33: An error has occurred
         Context:
