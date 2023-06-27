@@ -4,7 +4,7 @@ A Rust-like `Result[T]` handling package, that wraps either a value of type T, o
 
 Normal usage:
 
-```
+```go
 import "github.com/kitd/chock"
 
 func someFunctionThatMightFail(arg0 string) chock.Result[int] {
