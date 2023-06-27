@@ -18,19 +18,19 @@ func TestSuccess(t *testing.T) {
 }
 
 func TestPlainFailure(t *testing.T) {
-	r := myFunctionThatFails[int]()
-	if !r.Failed() {
+	if r := myFunctionThatFails[int](); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
+	} else {
+		t.Logf("%v\n", r.Unwrap())
 	}
-	t.Logf("%v\n", r.Unwrap())
 }
 
 func TestFailureWithContext(t *testing.T) {
-	r := myOtherFunctionThatFails().With("running TestFailureWithContext")
-	if !r.Failed() {
+	if r := myOtherFunctionThatFails(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
+	} else {
+		t.Logf("%v\n", r.With("running TestFailureWithContext").Unwrap())
 	}
-	t.Logf("%v\n", r.Unwrap())
 }
 
 func myFunctionThatFails[T any]() Result[T] {
