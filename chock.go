@@ -53,6 +53,7 @@ func Wrap(cause error) error {
 }
 
 type Result[T any] interface {
+	error
 	Failed() bool
 	Value() T
 	With(ctx string) Result[T]
@@ -75,6 +76,14 @@ func (r *resultImpl[T]) Value() T {
 func (r *resultImpl[T]) With(ctx string) Result[T] {
 	r.failure.(*cherr).AddContext(ctx)
 	return r
+}
+
+func (r *resultImpl[T]) Error() string {
+	if r.Failed() {
+		return r.failure.Error()
+	} else {
+		return ""
+	}
 }
 
 func (r *resultImpl[T]) Unwrap() error {

@@ -10,7 +10,7 @@ import (
 // Run this file with `go test -test.v ./...` to see sample error output
 
 func TestSuccess(t *testing.T) {
-	r := Success[int](42)
+	r := Success(42)
 
 	if r.Failed() || r.Value() != 42 {
 		t.Errorf("result failed. It should have passed with 42")
