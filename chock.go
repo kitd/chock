@@ -52,28 +52,39 @@ func Wrap(cause error) error {
 	return err
 }
 
-type Result[T any] struct {
-	Value   T
+type Result[T any] interface {
+	Failed() bool
+	Value() T
+	With(ctx string) Result[T]
+	Unwrap() error
+}
+
+type resultImpl[T any] struct {
+	value   T
 	failure error
 }
 
-func (r *Result[T]) Failed() bool {
+func (r *resultImpl[T]) Failed() bool {
 	return r.failure != nil
 }
 
-func (r *Result[T]) With(ctx string) *Result[T] {
+func (r *resultImpl[T]) Value() T {
+	return r.value
+}
+
+func (r *resultImpl[T]) With(ctx string) Result[T] {
 	r.failure.(*cherr).AddContext(ctx)
 	return r
 }
 
-func (r *Result[T]) Unwrap() error {
+func (r *resultImpl[T]) Unwrap() error {
 	return r.failure
 }
 
-func Success[T any](value T) *Result[T] {
-	return &Result[T]{value, nil}
+func Success[T any](value T) Result[T] {
+	return &resultImpl[T]{value, nil}
 }
 
-func Failure[T any](cause error) *Result[T] {
-	return &Result[T]{*new(T), Wrap(cause)}
+func Failure[T any](cause error) Result[T] {
+	return &resultImpl[T]{*new(T), Wrap(cause)}
 }

@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kitd/chock"
+	. "github.com/kitd/chock"
 )
 
 // Run this file with `go test -test.v ./...` to see sample error output
 
 func TestSuccess(t *testing.T) {
-	r := chock.Success[int](42)
+	r := Success[int](42)
 
-	if r.Failed() || r.Value != 42 {
+	if r.Failed() || r.Value() != 42 {
 		t.Errorf("result failed. It should have passed with 42")
 	}
 }
@@ -33,11 +33,11 @@ func TestFailureWithContext(t *testing.T) {
 	t.Logf("%v\n", r.Unwrap())
 }
 
-func myFunctionThatFails[T any]() *chock.Result[T] {
-	return chock.Failure[T](fmt.Errorf("An error has occurred"))
+func myFunctionThatFails[T any]() Result[T] {
+	return Failure[T](fmt.Errorf("An error has occurred"))
 }
 
-func myOtherFunctionThatFails() *chock.Result[int] {
+func myOtherFunctionThatFails() Result[int] {
 	r := myFunctionThatFails[int]()
 	if r.Failed() {
 		return r.With("calling myOtherFunctionThatFails")
