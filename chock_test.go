@@ -29,7 +29,7 @@ func TestFailureWithContext(t *testing.T) {
 	if r := myOtherFunctionThatFails(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.With("running TestFailureWithContext").Unwrap())
+		t.Logf("%v\n", r.Context("running TestFailureWithContext").Unwrap())
 	}
 }
 
@@ -40,7 +40,7 @@ func myFunctionThatFails[T any]() Result[T] {
 func myOtherFunctionThatFails() Result[int] {
 	r := myFunctionThatFails[int]()
 	if r.Failed() {
-		return r.With("calling myOtherFunctionThatFails")
+		return r.Context("calling myOtherFunctionThatFails")
 	} else {
 		return r
 	}

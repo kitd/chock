@@ -32,7 +32,7 @@ func (n *cherr) Unwrap() error {
 	return n.cause
 }
 
-func (n *cherr) AddContext(ctx string) {
+func (n *cherr) addContext(ctx string) {
 	n.context = append(n.context, ctx)
 }
 
@@ -56,7 +56,7 @@ type Result[T any] interface {
 	error
 	Failed() bool
 	Value() T
-	With(ctx string) Result[T]
+	Context(ctx string) Result[T]
 	Unwrap() error
 }
 
@@ -73,8 +73,8 @@ func (r *resultImpl[T]) Value() T {
 	return r.value
 }
 
-func (r *resultImpl[T]) With(ctx string) Result[T] {
-	r.failure.(*cherr).AddContext(ctx)
+func (r *resultImpl[T]) Context(ctx string) Result[T] {
+	r.failure.(*cherr).addContext(ctx)
 	return r
 }
 

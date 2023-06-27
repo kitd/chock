@@ -10,14 +10,14 @@ import "github.com/kitd/chock"
 func someFunctionThatMightFail(arg0 string) chock.Result[int] {
     intVal, err := external.IntFunction(arg0)
     if err != nil {
-        return chock.Failure[int](err).With(fmt.Sprintf("arg0=%s", arg0))
+        return chock.Failure[int](err).Context(fmt.Sprintf("arg0=%s", arg0))
     }
     return chock.Success(intVal)
 }
 
 func anotherFunction() chock.Result[int] {
     if r := someFunctionThatMightFail("xyz"); r.Failed() {
-        return r.With("calling anotherFunction")
+        return r.Context("calling anotherFunction")
     } else {
         doSomethingWith(r.Value())
     }
