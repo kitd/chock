@@ -26,7 +26,8 @@ func anotherFunction() chock.Result[int] {
 
 Actual errors are wrapped in an internal error that incorporates a stack trace (from the point where `chock.Wrap(cause)` is called), and allows context to be added before the result is returned, eg:
 ```
-    chock_test.go:33: An error has occurred
+    chock_test.go:33: 
+        Cause: "An error has occurred"
         Context:
         - calling myOtherFunctionThatFails
         - running TestFailureWithContext
