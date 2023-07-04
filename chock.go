@@ -45,10 +45,10 @@ func Wrap(cause error) ErrorWithContext {
 	err := &cherr{
 		cause: cause,
 	}
-	pcs := make([]uintptr, 64)
-	count := runtime.Callers(3, pcs)
+	var ptrs [64]uintptr
+	count := runtime.Callers(2, ptrs[:])
 	if count > 0 {
-		frames := runtime.CallersFrames(pcs[:count])
+		frames := runtime.CallersFrames(ptrs[:count])
 		for frame, more := frames.Next(); more; frame, more = frames.Next() {
 			err.stack = append(err.stack, fmt.Sprintf("(%s:%d) %s", frame.File, frame.Line, frame.Function))
 		}
