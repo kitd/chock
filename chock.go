@@ -19,16 +19,16 @@ type cherr struct {
 
 func (n *cherr) Error() string {
 	var sb strings.Builder
-	sb.WriteString(n.cause.Error() + "\n")
+	sb.WriteString(fmt.Sprintf("\nCause: \"%s\"\n", n.cause.Error()))
 	if len(n.context) > 0 {
 		sb.WriteString("Context:\n")
 		for _, ctx := range n.context {
-			sb.WriteString("- " + ctx + "\n")
+			sb.WriteString(fmt.Sprintf("- %s\n", ctx))
 		}
 	}
 	sb.WriteString("Stack:\n")
 	for _, frame := range n.stack {
-		sb.WriteString("- " + frame + "\n")
+		sb.WriteString(fmt.Sprintf("- %s\n", frame))
 	}
 	return sb.String()
 }
