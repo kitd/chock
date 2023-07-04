@@ -1,8 +1,8 @@
 # Chock
 
-A Rust-like `Result[T]` handling package, that wraps either a value of type T, or an error.
+A Rust-like `Result[T]` handling package for Go, that wraps either a value of type `T`, or an error.
 
-Normal usage:
+Typical usage:
 
 ```go
 import "github.com/kitd/chock"
@@ -24,7 +24,7 @@ func anotherFunction() chock.Result[int] {
 }
 ```
 
-Actual errors are wrapped in an internal error that incorporates a stack trace, and allows context to be added before the result is returned, eg:
+Actual errors are wrapped in an internal error that incorporates a stack trace (from the point where `chock.Failure[...](err)` is called), and allows context to be added before the result is returned, eg:
 ```
     chock_test.go:33: An error has occurred
         Context:
@@ -36,5 +36,7 @@ Actual errors are wrapped in an internal error that incorporates a stack trace, 
         - (/home/kit/dev/chock/chock_test.go:29) github.com/kitd/chock_test.TestFailureWithContext
         - (/usr/local/go/src/testing/testing.go:1576) testing.tRunner
 ```
+
+If you only want the enhanced error features without using the `Result[T]` type, you can call the `Wrap(cause)` function. You can add context to the resulting error, which will appear with a stack trace when output via the `error.Error()` function.
 
 An MIT license is applied.

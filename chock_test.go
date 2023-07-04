@@ -2,12 +2,30 @@ package chock_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	. "github.com/kitd/chock"
 )
 
 // Run this file with `go test -test.v ./...` to see sample error output
+
+func TestCherr(t *testing.T) {
+	err_msg := "An error occured"
+	ctx_msg := "running TestCherr "
+
+	old_err := fmt.Errorf(err_msg)
+	new_err := Wrap(old_err)
+	new_err.Context(ctx_msg)
+	message := new_err.Error()
+	if !strings.Contains(message, err_msg) {
+		t.Errorf("Error did not contain expected string '%s'", err_msg)
+	} else if !strings.Contains(message, ctx_msg) {
+		t.Errorf("Error did not contain expected string '%s'", err_msg)
+	} else {
+		t.Logf("%v\n", new_err)
+	}
+}
 
 func TestSuccess(t *testing.T) {
 	r := Success(42)

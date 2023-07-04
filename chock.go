@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type ErrorWithContext interface {
+	error
+	Context(ctx string)
+}
+
 type cherr struct {
 	cause   error
 	stack   []string
@@ -32,11 +37,11 @@ func (n *cherr) Unwrap() error {
 	return n.cause
 }
 
-func (n *cherr) addContext(ctx string) {
+func (n *cherr) Context(ctx string) {
 	n.context = append(n.context, ctx)
 }
 
-func Wrap(cause error) error {
+func Wrap(cause error) ErrorWithContext {
 	err := &cherr{
 		cause: cause,
 	}
@@ -62,7 +67,7 @@ type Result[T any] interface {
 
 type resultImpl[T any] struct {
 	value   T
-	failure error
+	failure ErrorWithContext
 }
 
 func (r *resultImpl[T]) Failed() bool {
@@ -74,7 +79,7 @@ func (r *resultImpl[T]) Value() T {
 }
 
 func (r *resultImpl[T]) Context(ctx string) Result[T] {
-	r.failure.(*cherr).addContext(ctx)
+	r.failure.Context(ctx)
 	return r
 }
 
