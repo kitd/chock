@@ -21,7 +21,7 @@ func TestCherr(t *testing.T) {
 	if !strings.Contains(message, err_msg) {
 		t.Errorf("Error did not contain expected string '%s'", err_msg)
 	} else if !strings.Contains(message, ctx_msg) {
-		t.Errorf("Error did not contain expected string '%s'", err_msg)
+		t.Errorf("Error did not contain expected string '%s'", ctx_msg)
 	} else {
 		t.Logf("%v\n", new_err)
 	}
