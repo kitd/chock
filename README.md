@@ -1,6 +1,6 @@
 # Chock
 
-A Rust-like `Result[T]` handling package for Go, that wraps either a value of type `T`, or an error.
+A `Result[T]` handling package for Go, that wraps either a value of type `T`, or an error.
 
 Typical usage:
 
@@ -40,5 +40,16 @@ Actual errors are wrapped in an internal error that incorporates a stack trace (
 ```
 
 If you only want the enhanced error features without using the `Result[T]` type, you can call the `chock.Wrap(cause)` function. You can add context to the resulting error, which will appear with a stack trace when output via the `error.Error()` function.
+
+You can switch of the display of the stack by setting the `CHOCK_INCL_STACK` env var to `false`. Similarly, the display of the context info can be controlled using the `CHOCK_INCL_CTX` env var. 
+
+If you set the `CHOCK_INCL_SOURCE` env var to true, it will display the source line of the top stack frame, along with the preceding and succeeding lines. Eg:
+```
+    Source:
+    -    func Failure[T any](cause error) Result[T] {
+    - =>    return &resultImpl[T]{*new(T), Wrap(cause)}
+    -    }
+```
+Note that this only really makes sense in testing as the source code will probably not be available in production.
 
 An MIT license is applied.

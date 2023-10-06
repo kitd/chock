@@ -51,6 +51,29 @@ func TestFailureWithContext(t *testing.T) {
 	}
 }
 
+func TestFlags(t *testing.T) {
+	defer func() {
+		IncludeContext = true
+		IncludeSource = false
+	}()
+
+	IncludeContext = false
+	IncludeSource = true
+	if r := myOtherFunctionThatFails(); !r.Failed() {
+		t.Errorf("result succeeded. It should have failed")
+	} else {
+		err := r.Context("running TestFlags").Unwrap()
+		errStr := err.Error()
+		if strings.Contains(errStr, "Context:") {
+			t.Errorf("error contains context. It should not have")
+		}
+		if !strings.Contains(errStr, "- =>") {
+			t.Errorf("error does not contain source. It should have")
+		}
+		t.Logf("%v\n", err)
+	}
+}
+
 func myFunctionThatFails[T any]() Result[T] {
 	return Failure[T](fmt.Errorf("An error has occurred"))
 }
