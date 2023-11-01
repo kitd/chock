@@ -16,7 +16,7 @@ func TestCherr(t *testing.T) {
 
 	old_err := fmt.Errorf(err_msg)
 	new_err := Wrap(old_err)
-	new_err.Context(ctx_msg)
+	new_err.AddContext(ctx_msg)
 	message := new_err.Error()
 	if !strings.Contains(message, err_msg) {
 		t.Errorf("Error did not contain expected string '%s'", err_msg)
@@ -47,7 +47,7 @@ func TestFailureWithContext(t *testing.T) {
 	if r := myOtherFunctionThatFails(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.Context("running TestFailureWithContext").Unwrap())
+		t.Logf("%v\n", r.AddContext("running TestFailureWithContext").Unwrap())
 	}
 }
 
@@ -62,7 +62,7 @@ func TestFlags(t *testing.T) {
 	if r := myOtherFunctionThatFails(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		err := r.Context("running TestFlags").Unwrap()
+		err := r.AddContext("running TestFlags").Unwrap()
 		errStr := err.Error()
 		if strings.Contains(errStr, "Context:") {
 			t.Errorf("error contains context. It should not have")
@@ -81,7 +81,7 @@ func myFunctionThatFails[T any]() Result[T] {
 func myOtherFunctionThatFails() Result[int] {
 	r := myFunctionThatFails[int]()
 	if r.Failed() {
-		return r.Context("calling myOtherFunctionThatFails")
+		return r.AddContext("calling myOtherFunctionThatFails")
 	} else {
 		return r
 	}

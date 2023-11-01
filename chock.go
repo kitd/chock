@@ -28,65 +28,68 @@ func init() {
 }
 
 func loadFlagFromEnv(flag *bool, envVar string) {
-	if b, e := strconv.ParseBool(os.Getenv(envVar)); e == nil {
-		*flag = b
+	if val, err := strconv.ParseBool(os.Getenv(envVar)); err == nil {
+		*flag = val
 	}
 }
 
 type ErrorWithContext interface {
 	error
-	Context(ctx string)
+	AddContext(ctx string)
 }
 
-type cherr struct {
+type chockError struct {
 	cause   error
 	stack   []string
 	context []string
 	source  []string
 }
 
-func (n *cherr) Error() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("\nCause: \"%s\"\n", n.cause.Error()))
+func (n *chockError) Error() string {
+	sb := &strings.Builder{}
+	sb.WriteString("\nCause: \"")
+	sb.WriteString(n.cause.Error())
+	sb.WriteString("\"\n")
+
 	if IncludeContext && len(n.context) > 0 {
-		sb.WriteString("Context:\n")
-		for _, ctx := range n.context {
-			sb.WriteString(fmt.Sprintf("- %s\n", ctx))
-		}
+		writeStrings(sb, "Context", n.context)
 	}
 	if IncludeStack {
-		sb.WriteString("Stack:\n")
-		for _, frame := range n.stack {
-			sb.WriteString(fmt.Sprintf("- %s\n", frame))
-		}
+		writeStrings(sb, "Stack", n.stack)
 	}
 	if IncludeSource {
-		sb.WriteString("Source:\n")
-		for _, line := range n.source {
-			sb.WriteString(fmt.Sprintf("- %s\n", line))
-		}
+		writeStrings(sb, "Source", n.source)
 	}
 	return sb.String()
 }
 
-func (n *cherr) Unwrap() error {
+func writeStrings(sb *strings.Builder, label string, lines []string) {
+	sb.WriteString(label + ":\n")
+	for _, line := range lines {
+		sb.WriteString("- ")
+		sb.WriteString(line)
+		sb.WriteString("\n")
+	}
+}
+
+func (n *chockError) Unwrap() error {
 	return n.cause
 }
 
-func (n *cherr) Context(ctx string) {
+func (n *chockError) AddContext(ctx string) {
 	n.context = append(n.context, ctx)
 }
 
 func Wrap(cause error) ErrorWithContext {
-	err := &cherr{
+	err := &chockError{
 		cause: cause,
 	}
 	var ptrs [64]uintptr
-	count := runtime.Callers(2, ptrs[:])
+	count := runtime.Callers(2, ptrs[:]) // '2' skips frames until the caller of 'Wrap'
 	if count > 0 {
 		frames := runtime.CallersFrames(ptrs[:count])
 		top := true
-		for frame, more := frames.Next(); more; frame, more = frames.Next() {
+		for frame, hasMore := frames.Next(); hasMore; frame, hasMore = frames.Next() {
 			err.stack = append(err.stack, fmt.Sprintf("(%s:%d) %s", frame.File, frame.Line, frame.Function))
 			if top {
 				if IncludeSource {
@@ -118,7 +121,7 @@ type Result[T any] interface {
 	error
 	Failed() bool
 	Value() T
-	Context(ctx string) Result[T]
+	AddContext(ctx string) Result[T]
 	Unwrap() error
 }
 
@@ -135,8 +138,8 @@ func (r *resultImpl[T]) Value() T {
 	return r.value
 }
 
-func (r *resultImpl[T]) Context(ctx string) Result[T] {
-	r.failure.Context(ctx)
+func (r *resultImpl[T]) AddContext(ctx string) Result[T] {
+	r.failure.AddContext(ctx)
 	return r
 }
 
