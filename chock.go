@@ -2,6 +2,7 @@ package chock
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"runtime"
@@ -35,13 +36,13 @@ func loadFlagFromEnv(flag *bool, envVar string) {
 
 type ErrorWithContext interface {
 	error
-	AddContext(ctx string)
+	WithContext(key string, value any) ErrorWithContext
 }
 
 type chockError struct {
 	cause   error
 	stack   []string
-	context []string
+	context map[string]any
 	source  []string
 }
 
@@ -52,7 +53,10 @@ func (n *chockError) Error() string {
 	sb.WriteString("\"\n")
 
 	if IncludeContext && len(n.context) > 0 {
-		writeStrings(sb, "Context", n.context)
+		json, _ := json.MarshalIndent(n.context, "", "  ")
+		sb.WriteString("Context:\n")
+		sb.WriteString(fmt.Sprint(string(json)))
+		sb.WriteString("\n")
 	}
 	if IncludeStack {
 		writeStrings(sb, "Stack", n.stack)
@@ -76,13 +80,15 @@ func (n *chockError) Unwrap() error {
 	return n.cause
 }
 
-func (n *chockError) AddContext(ctx string) {
-	n.context = append(n.context, ctx)
+func (n *chockError) WithContext(key string, value any) ErrorWithContext {
+	n.context[key] = value
+	return n
 }
 
 func Wrap(cause error) ErrorWithContext {
 	err := &chockError{
-		cause: cause,
+		cause:   cause,
+		context: map[string]any{},
 	}
 	var ptrs [64]uintptr
 	count := runtime.Callers(2, ptrs[:]) // '2' skips frames until the caller of 'Wrap'
@@ -121,7 +127,7 @@ type Result[T any] interface {
 	error
 	Failed() bool
 	Value() T
-	AddContext(ctx string) Result[T]
+	WithContext(key string, value any) Result[T]
 	Unwrap() error
 }
 
@@ -138,8 +144,8 @@ func (r *resultImpl[T]) Value() T {
 	return r.value
 }
 
-func (r *resultImpl[T]) AddContext(ctx string) Result[T] {
-	r.failure.AddContext(ctx)
+func (r *resultImpl[T]) WithContext(key string, value any) Result[T] {
+	r.failure.WithContext(key, value)
 	return r
 }
 
