@@ -15,7 +15,7 @@ func TestCherr(t *testing.T) {
 
 	old_err := fmt.Errorf(err_msg)
 	new_err := Wrap(old_err)
-	new_err.WithContext("txId", 1234)
+	new_err.Context("txId", 1234)
 	message := new_err.Error()
 	if !strings.Contains(message, err_msg) {
 		t.Errorf("Error did not contain expected string '%s'", err_msg)
@@ -37,18 +37,18 @@ func TestSuccess(t *testing.T) {
 }
 
 func TestPlainFailure(t *testing.T) {
-	if r := myFunctionThatFails[int](); !r.Failed() {
+	if r := sourceOfFailure[int](); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.Unwrap())
+		t.Logf("%v\n", r.Failure().Unwrap())
 	}
 }
 
 func TestFailureWithContext(t *testing.T) {
-	if r := myOtherFunctionThatFails(); !r.Failed() {
+	if r := intermediateFunc(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.WithContext("running", "TestFailureWithContext").Unwrap())
+		t.Logf("%v\n", r.Context("running", "TestFailureWithContext").Failure().Unwrap())
 	}
 }
 
@@ -60,10 +60,10 @@ func TestFlags(t *testing.T) {
 
 	IncludeContext = false
 	IncludeSource = true
-	if r := myOtherFunctionThatFails(); !r.Failed() {
+	if r := intermediateFunc(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		err := r.WithContext("running", "TestFlags").Unwrap()
+		err := r.Context("running", "TestFlags").Failure()
 		errStr := err.Error()
 		if strings.Contains(errStr, "Context:") {
 			t.Errorf("error contains context. It should not have")
@@ -75,14 +75,14 @@ func TestFlags(t *testing.T) {
 	}
 }
 
-func myFunctionThatFails[T any]() Result[T] {
+func sourceOfFailure[T any]() Result[T] {
 	return Failure[T](fmt.Errorf("An error has occurred"))
 }
 
-func myOtherFunctionThatFails() Result[int] {
-	r := myFunctionThatFails[int]()
+func intermediateFunc() Result[int] {
+	r := sourceOfFailure[int]()
 	if r.Failed() {
-		return r.WithContext("calling", "myOtherFunctionThatFails")
+		return r.Context("calling", "myOtherFunctionThatFails")
 	} else {
 		return r
 	}

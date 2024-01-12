@@ -36,7 +36,8 @@ func loadFlagFromEnv(flag *bool, envVar string) {
 
 type ErrorWithContext interface {
 	error
-	WithContext(key string, value any) ErrorWithContext
+	Context(key string, value any) ErrorWithContext
+	Unwrap() error
 }
 
 type chockError struct {
@@ -80,7 +81,7 @@ func (n *chockError) Unwrap() error {
 	return n.cause
 }
 
-func (n *chockError) WithContext(key string, value any) ErrorWithContext {
+func (n *chockError) Context(key string, value any) ErrorWithContext {
 	n.context[key] = value
 	return n
 }
@@ -124,11 +125,10 @@ func Wrap(cause error) ErrorWithContext {
 }
 
 type Result[T any] interface {
-	error
 	Failed() bool
+	Failure() ErrorWithContext
+	Context(key string, value any) Result[T]
 	Value() T
-	WithContext(key string, value any) Result[T]
-	Unwrap() error
 }
 
 type resultImpl[T any] struct {
@@ -140,12 +140,16 @@ func (r *resultImpl[T]) Failed() bool {
 	return r.failure != nil
 }
 
+func (r *resultImpl[T]) Failure() ErrorWithContext {
+	return r.failure
+}
+
 func (r *resultImpl[T]) Value() T {
 	return r.value
 }
 
-func (r *resultImpl[T]) WithContext(key string, value any) Result[T] {
-	r.failure.WithContext(key, value)
+func (r *resultImpl[T]) Context(key string, value any) Result[T] {
+	r.failure.Context(key, value)
 	return r
 }
 
@@ -155,10 +159,6 @@ func (r *resultImpl[T]) Error() string {
 	} else {
 		return ""
 	}
-}
-
-func (r *resultImpl[T]) Unwrap() error {
-	return r.failure
 }
 
 func Success[T any](value T) Result[T] {

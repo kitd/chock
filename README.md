@@ -8,8 +8,8 @@ Typical usage:
 import "github.com/kitd/chock"
 
 func someFunctionThatMightFail(arg0 string) chock.Result[int] {
-    if intVal, err := external.IntFunction(arg0); err != nil {
-        return chock.Failure[int](err).Context(fmt.Sprintf("arg0=%s", arg0))
+    if intVal, err := somepkg.MyIntFunction(arg0); err != nil {
+        return chock.Failure[int](err).Context("arg0", arg0)
     } else {
         return chock.Success(intVal)
     }
@@ -17,7 +17,7 @@ func someFunctionThatMightFail(arg0 string) chock.Result[int] {
 
 func anotherFunction() chock.Result[int] {
     if r := someFunctionThatMightFail("xyz"); r.Failed() {
-        return r.Context("calling anotherFunction")
+        return r.Context("foo", "bar")
     } else {
         doSomethingWith(r.Value())
     }
@@ -29,8 +29,10 @@ Actual errors are wrapped in an internal error that incorporates a stack trace (
     chock_test.go:33: 
         Cause: "An error has occurred"
         Context:
-        - calling myOtherFunctionThatFails
-        - running TestFailureWithContext
+        {
+            "foo": "bar",
+            "arg0": "xyz"
+        }
         Stack:
         - (/home/kit/dev/chock/chock.go:103) github.com/kitd/chock.Failure[...]
         - (/home/kit/dev/chock/chock_test.go:37) github.com/kitd/chock_test.myFunctionThatFails[...]
