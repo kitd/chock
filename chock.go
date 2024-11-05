@@ -2,7 +2,6 @@ package chock
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"runtime"
@@ -54,10 +53,11 @@ func (n *chockError) Error() string {
 	sb.WriteString("\"\n")
 
 	if IncludeContext && len(n.context) > 0 {
-		json, _ := json.MarshalIndent(n.context, "", "  ")
-		sb.WriteString("Context:\n")
-		sb.WriteString(fmt.Sprint(string(json)))
-		sb.WriteString("\n")
+		var lines []string
+		for k, v := range n.context {
+			lines = append(lines, fmt.Sprintf("%s = %v", k, v))
+		}
+		writeStrings(sb, "Context", lines)
 	}
 	if IncludeStack {
 		writeStrings(sb, "Stack", n.stack)
