@@ -33,20 +33,14 @@ func loadFlagFromEnv(flag *bool, envVar string) {
 	}
 }
 
-type ErrorWithContext interface {
-	error
-	Context(key string, value any) ErrorWithContext
-	Unwrap() error
-}
-
-type chockError struct {
+type ChockError struct {
 	cause   error
 	stack   []string
 	context map[string]any
 	source  []string
 }
 
-func (n *chockError) Error() string {
+func (n *ChockError) Error() string {
 	sb := &strings.Builder{}
 	sb.WriteString("\nCause: \"")
 	sb.WriteString(n.cause.Error())
@@ -77,17 +71,17 @@ func writeStrings(sb *strings.Builder, label string, lines []string) {
 	}
 }
 
-func (n *chockError) Unwrap() error {
+func (n *ChockError) Unwrap() error {
 	return n.cause
 }
 
-func (n *chockError) Context(key string, value any) ErrorWithContext {
+func (n *ChockError) Context(key string, value any) *ChockError {
 	n.context[key] = value
 	return n
 }
 
-func Wrap(cause error) ErrorWithContext {
-	err := &chockError{
+func Wrap(cause error) *ChockError {
+	err := &ChockError{
 		cause:   cause,
 		context: map[string]any{},
 	}
@@ -124,36 +118,29 @@ func Wrap(cause error) ErrorWithContext {
 	return err
 }
 
-type Result[T any] interface {
-	Failed() bool
-	Failure() ErrorWithContext
-	Context(key string, value any) Result[T]
-	Value() T
-}
-
-type resultImpl[T any] struct {
+type Result[T any] struct {
 	value   T
-	failure ErrorWithContext
+	failure *ChockError
 }
 
-func (r *resultImpl[T]) Failed() bool {
+func (r *Result[T]) Failed() bool {
 	return r.failure != nil
 }
 
-func (r *resultImpl[T]) Failure() ErrorWithContext {
+func (r *Result[T]) Failure() *ChockError {
 	return r.failure
 }
 
-func (r *resultImpl[T]) Value() T {
+func (r *Result[T]) Value() T {
 	return r.value
 }
 
-func (r *resultImpl[T]) Context(key string, value any) Result[T] {
+func (r *Result[T]) Context(key string, value any) *Result[T] {
 	r.failure.Context(key, value)
 	return r
 }
 
-func (r *resultImpl[T]) Error() string {
+func (r *Result[T]) Error() string {
 	if r.Failed() {
 		return r.failure.Error()
 	} else {
@@ -161,10 +148,10 @@ func (r *resultImpl[T]) Error() string {
 	}
 }
 
-func Success[T any](value T) Result[T] {
-	return &resultImpl[T]{value, nil}
+func Success[T any](value T) *Result[T] {
+	return &Result[T]{value, nil}
 }
 
-func Failure[T any](cause error) Result[T] {
-	return &resultImpl[T]{*new(T), Wrap(cause)}
+func Failure[T any](cause error) *Result[T] {
+	return &Result[T]{*new(T), Wrap(cause)}
 }

@@ -75,11 +75,11 @@ func TestFlags(t *testing.T) {
 	}
 }
 
-func sourceOfFailure[T any]() Result[T] {
+func sourceOfFailure[T any]() *Result[T] {
 	return Failure[T](fmt.Errorf("An error has occurred"))
 }
 
-func intermediateFunc() Result[int] {
+func intermediateFunc() *Result[int] {
 	r := sourceOfFailure[int]()
 	if r.Failed() {
 		return r.Context("calling", "myOtherFunctionThatFails")
