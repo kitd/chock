@@ -10,24 +10,6 @@ import (
 
 // Run this file with `go test -test.v ./...` to see sample error output
 
-func TestCherr(t *testing.T) {
-	err_msg := "An error occured"
-
-	old_err := fmt.Errorf(err_msg)
-	new_err := Wrap(old_err)
-	new_err.Context("txId", 1234)
-	message := new_err.Error()
-	if !strings.Contains(message, err_msg) {
-		t.Errorf("Error did not contain expected string '%s'", err_msg)
-	} else if !strings.Contains(message, "txId") {
-		t.Error("Error did not contain expected string 'txId'")
-	} else if !strings.Contains(message, "1234") {
-		t.Error("Error did not contain expected string '1234'")
-	} else {
-		t.Logf("%v\n", new_err)
-	}
-}
-
 func TestSuccess(t *testing.T) {
 	r := Success(42)
 
@@ -40,7 +22,7 @@ func TestPlainFailure(t *testing.T) {
 	if r := sourceOfFailure[int](); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.Failure().Unwrap())
+		t.Logf("%v\n", r.Unwrap())
 	}
 }
 
@@ -48,7 +30,7 @@ func TestFailureWithContext(t *testing.T) {
 	if r := intermediateFunc(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.Context("running", "TestFailureWithContext").Failure().Unwrap())
+		t.Logf("%v\n", r.Context("running TestFailureWithContext").Unwrap())
 	}
 }
 
@@ -63,7 +45,7 @@ func TestFlags(t *testing.T) {
 	if r := intermediateFunc(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		err := r.Context("running", "TestFlags").Failure()
+		err := r.Context("running TestFlags")
 		errStr := err.Error()
 		if strings.Contains(errStr, "Context:") {
 			t.Errorf("error contains context. It should not have")
@@ -75,15 +57,37 @@ func TestFlags(t *testing.T) {
 	}
 }
 
+func TestResultOf(t *testing.T) {
+	if result := ResultOf(funcThatSucceeds()); result.Failed() {
+		t.Error("Test funcThatSucceeds should have passed")
+	} else {
+		t.Logf("Succeeded as expected: %d", result.Value())
+	}
+
+	if result := ResultOf(funcThatFails()); !result.Failed() {
+		t.Error("Test funcThatFails should have failed")
+	} else {
+		t.Logf("Failed as expected: %v", result.Context("Doing funcThatFails"))
+	}
+}
+
 func sourceOfFailure[T any]() *Result[T] {
-	return Failure[T](fmt.Errorf("An error has occurred"))
+	return Wrap[T](fmt.Errorf("An error has occurred"))
 }
 
 func intermediateFunc() *Result[int] {
 	r := sourceOfFailure[int]()
 	if r.Failed() {
-		return r.Context("calling", "myOtherFunctionThatFails")
+		return r.Context("calling myOtherFunctionThatFails")
 	} else {
 		return r
 	}
+}
+
+func funcThatSucceeds() (int, error) {
+	return 1, nil
+}
+
+func funcThatFails() (int, error) {
+	return 0, fmt.Errorf("Test Error")
 }

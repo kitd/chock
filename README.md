@@ -42,8 +42,6 @@ Actual errors are wrapped in an internal error that incorporates a stack trace (
 ```
 The file name and line number are formatted to make them clickable in VSCode, allowing you to open the source file at the error line in a single click.  
 
-If you only want the enhanced error features without using the `Result[T]` type, you can call the `chock.Wrap(cause)` function. You can add context to the resulting error, which will appear with a stack trace when output via the `error.Error()` function.
-
 You can switch off the display of the stack by setting the `CHOCK_INCL_STACK` env var to `false`. Similarly, the display of the context info can be controlled using the `CHOCK_INCL_CTX` env var. 
 
 If you set the `CHOCK_INCL_SOURCE` env var to true, it will display the source line of the top stack frame, along with the preceding and succeeding lines. Eg:
