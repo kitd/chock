@@ -72,7 +72,7 @@ func TestResultOf(t *testing.T) {
 }
 
 func sourceOfFailure[T any]() *Result[T] {
-	return Wrap[T](fmt.Errorf("An error has occurred"))
+	return Failure[T](fmt.Errorf("An error has occurred"))
 }
 
 func intermediateFunc() *Result[int] {

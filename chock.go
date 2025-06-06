@@ -101,12 +101,12 @@ func Success[T any](value T) *Result[T] {
 	return &Result[T]{value, nil, nil}
 }
 
-func Wrap[T any](cause error) *Result[T] {
+func Failure[T any](cause error) *Result[T] {
 	var zero T
 	err := &Result[T]{zero, &chockError{cause, nil, nil}, nil}
 	if IncludeStack {
 		var ptrs [64]uintptr
-		count := runtime.Callers(2, ptrs[:]) // '2' skips frames until the caller of 'Wrap'
+		count := runtime.Callers(2, ptrs[:]) // '2' skips frames until our caller
 		if count > 0 {
 			frames := runtime.CallersFrames(ptrs[:count])
 			top := true
@@ -140,7 +140,7 @@ func Wrap[T any](cause error) *Result[T] {
 
 func ResultOf[T any](value T, err error) *Result[T] {
 	if err != nil {
-		return Wrap[T](err)
+		return Failure[T](err)
 	} else {
 		return Success(value)
 	}
