@@ -24,6 +24,15 @@ func anotherFunction() chock.Result[int] {
 }
 ```
 
+For functions that return a tuple of `(type, error)`, you can call `chock.ResultOf(function())`. Eg:
+```go
+if myFile := chock.ResultOf(ioutils.ReadFile("myFile")); myFile.Failed() {
+    return myFile.Context("Trying to read myFile")
+} else {
+    fmt.println(string(myFile.Value()[:]))
+}
+```
+
 Actual errors are wrapped in an internal error that incorporates a stack trace (from the point where `chock.Wrap(cause)` is called), and allows context to be added before the result is returned, eg:
 ```
     chock_test.go:33: 
