@@ -36,12 +36,12 @@ func TestFailureWithContext(t *testing.T) {
 
 func TestFlags(t *testing.T) {
 	defer func() {
-		IncludeContext = true
-		IncludeSource = false
+		TraceFlags[ENV_INCL_CTX] = true
+		TraceFlags[ENV_INCL_SOURCE] = false
 	}()
 
-	IncludeContext = false
-	IncludeSource = true
+	TraceFlags[ENV_INCL_CTX] = false
+	TraceFlags[ENV_INCL_SOURCE] = true
 	if r := intermediateFunc(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {

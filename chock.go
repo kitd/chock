@@ -9,27 +9,29 @@ import (
 	"strings"
 )
 
-var (
-	IncludeContext = true
-	IncludeStack   = true
-	IncludeSource  = false
-)
-
 const (
 	ENV_INCL_CTX    = "CHOCK_INCL_CTX"
 	ENV_INCL_STACK  = "CHOCK_INCL_STACK"
 	ENV_INCL_SOURCE = "CHOCK_INCL_SOURCE"
 )
 
+var (
+	TraceFlags map[string]bool = map[string]bool{
+		ENV_INCL_CTX:    true,
+		ENV_INCL_STACK:  true,
+		ENV_INCL_SOURCE: false,
+	}
+)
+
 func init() {
-	loadFlagFromEnv(&IncludeContext, ENV_INCL_CTX)
-	loadFlagFromEnv(&IncludeStack, ENV_INCL_STACK)
-	loadFlagFromEnv(&IncludeSource, ENV_INCL_SOURCE)
+	RefreshConfig()
 }
 
-func loadFlagFromEnv(flag *bool, envVar string) {
-	if val, err := strconv.ParseBool(os.Getenv(envVar)); err == nil {
-		*flag = val
+func RefreshConfig() {
+	for envVar, _ := range TraceFlags {
+		if val, err := strconv.ParseBool(os.Getenv(envVar)); err == nil {
+			TraceFlags[envVar] = val
+		}
 	}
 }
 
@@ -75,6 +77,11 @@ func (r *Result[T]) Context(val string) *Result[T] {
 	return r
 }
 
+func (r *Result[T]) Contextf(format string, args ...any) *Result[T] {
+	r.context = append(r.context, fmt.Sprintf(format, args...))
+	return r
+}
+
 func (r *Result[T]) Error() string {
 	if r.Failed() {
 		sb := &strings.Builder{}
@@ -82,13 +89,13 @@ func (r *Result[T]) Error() string {
 		sb.WriteString(r.Unwrap().Error())
 		sb.WriteString("\"\n")
 
-		if IncludeContext && len(r.context) > 0 {
+		if TraceFlags[ENV_INCL_CTX] && len(r.context) > 0 {
 			writeStrings(sb, "Context", r.context)
 		}
-		if IncludeStack {
+		if TraceFlags[ENV_INCL_STACK] {
 			writeStrings(sb, "Stack", r.failure.stack)
 		}
-		if IncludeSource {
+		if TraceFlags[ENV_INCL_SOURCE] {
 			writeStrings(sb, "Source", r.failure.source)
 		}
 		return sb.String()
@@ -104,7 +111,7 @@ func Success[T any](value T) *Result[T] {
 func Failure[T any](cause error) *Result[T] {
 	var zero T
 	err := &Result[T]{zero, &chockError{cause, nil, nil}, nil}
-	if IncludeStack {
+	if TraceFlags[ENV_INCL_STACK] {
 		var ptrs [64]uintptr
 		count := runtime.Callers(2, ptrs[:]) // '2' skips frames until our caller
 		if count > 0 {
@@ -113,7 +120,7 @@ func Failure[T any](cause error) *Result[T] {
 			for frame, hasMore := frames.Next(); hasMore; frame, hasMore = frames.Next() {
 				err.failure.stack = append(err.failure.stack, fmt.Sprintf("(%s:%d) %s", frame.File, frame.Line, frame.Function))
 				if top {
-					if IncludeSource {
+					if TraceFlags[ENV_INCL_SOURCE] {
 						if file, e := os.Open(frame.File); e == nil {
 							defer file.Close()
 							scanner := bufio.NewScanner(file)
