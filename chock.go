@@ -35,10 +35,18 @@ func RefreshConfig() {
 	}
 }
 
-func writeStrings(sb *strings.Builder, label string, lines []string) {
-	sb.WriteString(label + ":\n")
+func writeStrings(sb *strings.Builder, label string, lines []string, block bool) {
+	if block {
+		sb.WriteString(label + ": |\n")
+	} else {
+		sb.WriteString(label + ":\n")
+	}
 	for _, line := range lines {
-		sb.WriteString("- ")
+		if block {
+			sb.WriteString("  ")
+		} else {
+			sb.WriteString("- ")
+		}
 		sb.WriteString(line)
 		sb.WriteString("\n")
 	}
@@ -90,13 +98,13 @@ func (r *Result[T]) Error() string {
 		sb.WriteString("\"\n")
 
 		if TraceFlags[ENV_INCL_CTX] && len(r.context) > 0 {
-			writeStrings(sb, "Context", r.context)
+			writeStrings(sb, "Context", r.context, false)
 		}
 		if TraceFlags[ENV_INCL_STACK] {
-			writeStrings(sb, "Stack", r.failure.stack)
+			writeStrings(sb, "Stack", r.failure.stack, false)
 		}
 		if TraceFlags[ENV_INCL_SOURCE] {
-			writeStrings(sb, "Source", r.failure.source)
+			writeStrings(sb, "Source", r.failure.source, true)
 		}
 		return sb.String()
 	} else {
@@ -131,7 +139,7 @@ func Failure[T any](cause error) *Result[T] {
 							scanner.Scan()
 							err.failure.source = append(err.failure.source, "   "+scanner.Text())
 							scanner.Scan()
-							err.failure.source = append(err.failure.source, "=> "+scanner.Text())
+							err.failure.source = append(err.failure.source, " * "+scanner.Text())
 							if scanner.Scan() {
 								err.failure.source = append(err.failure.source, "   "+scanner.Text())
 							}
