@@ -50,7 +50,7 @@ func TestFlags(t *testing.T) {
 		if strings.Contains(errStr, "Context:") {
 			t.Errorf("error contains context. It should not have")
 		}
-		if !strings.Contains(errStr, "- =>") {
+		if !strings.Contains(errStr, "Source: |") {
 			t.Errorf("error does not contain source. It should have")
 		}
 		t.Logf("%v\n", err)
