@@ -58,21 +58,30 @@ type chockError struct {
 	source []string
 }
 
-type Result[T any] struct {
+type Result[T any] interface {
+	error
+	Failed() bool
+	Value() T
+	Unwrap() error
+	Context(val string) Result[T]
+	Contextf(format string, args ...any) Result[T]
+}
+
+type chockResult[T any] struct {
 	value   T
 	failure *chockError
 	context []string
 }
 
-func (r *Result[T]) Failed() bool {
+func (r *chockResult[T]) Failed() bool {
 	return r.failure != nil
 }
 
-func (r *Result[T]) Value() T {
+func (r *chockResult[T]) Value() T {
 	return r.value
 }
 
-func (r *Result[T]) Unwrap() error {
+func (r *chockResult[T]) Unwrap() error {
 	if r.Failed() {
 		return r.failure.err
 	} else {
@@ -80,17 +89,17 @@ func (r *Result[T]) Unwrap() error {
 	}
 }
 
-func (r *Result[T]) Context(val string) *Result[T] {
+func (r *chockResult[T]) Context(val string) Result[T] {
 	r.context = append(r.context, val)
 	return r
 }
 
-func (r *Result[T]) Contextf(format string, args ...any) *Result[T] {
+func (r *chockResult[T]) Contextf(format string, args ...any) Result[T] {
 	r.context = append(r.context, fmt.Sprintf(format, args...))
 	return r
 }
 
-func (r *Result[T]) Error() string {
+func (r *chockResult[T]) Error() string {
 	if r.Failed() {
 		sb := &strings.Builder{}
 		sb.WriteString("\nCause: \"")
@@ -112,13 +121,13 @@ func (r *Result[T]) Error() string {
 	}
 }
 
-func Success[T any](value T) *Result[T] {
-	return &Result[T]{value, nil, nil}
+func Success[T any](value T) Result[T] {
+	return &chockResult[T]{value, nil, nil}
 }
 
-func Failure[T any](cause error) *Result[T] {
+func Failure[T any](cause error) Result[T] {
 	var zero T
-	err := &Result[T]{zero, &chockError{cause, nil, nil}, nil}
+	err := &chockResult[T]{zero, &chockError{cause, nil, nil}, nil}
 	if TraceFlags[ENV_INCL_STACK] {
 		var ptrs [64]uintptr
 		count := runtime.Callers(2, ptrs[:]) // '2' skips frames until our caller
@@ -153,7 +162,7 @@ func Failure[T any](cause error) *Result[T] {
 	return err
 }
 
-func ResultOf[T any](value T, err error) *Result[T] {
+func ResultOf[T any](value T, err error) Result[T] {
 	if err != nil {
 		return Failure[T](err)
 	} else {
