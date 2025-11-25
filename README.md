@@ -10,7 +10,7 @@ Basic usage:
 ```go
 import "github.com/kitd/chock"
 
-func someFunctionThatMightFail(arg0 string) *chock.Result[int] {
+func someFunctionThatMightFail(arg0 string) chock.Result[int] {
     if intVal, err := somepkg.MyIntFunction(arg0); err != nil {
         return chock.Failure[int](err).Contextf("arg0 = %s", arg0)
     } else {
@@ -18,7 +18,7 @@ func someFunctionThatMightFail(arg0 string) *chock.Result[int] {
     }
 }
 
-func anotherFunction() *chock.Result[int] {
+func anotherFunction() chock.Result[int] {
     if r := someFunctionThatMightFail("xyz"); r.Failed() {
         return r.Context("foo = bar")
     } else {
