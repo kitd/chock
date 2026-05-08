@@ -52,82 +52,68 @@ func writeStrings(sb *strings.Builder, label string, lines []string, block bool)
 	}
 }
 
-type chockError struct {
-	err    error
-	stack  []string
-	source []string
-}
-
-type Result[T any] interface {
-	error
+type Result interface {
 	Failed() bool
-	Value() T
-	Unwrap() error
-	Context(val string) Result[T]
-	Contextf(format string, args ...any) Result[T]
 }
 
-type chockResult[T any] struct {
-	value   T
-	failure *chockError
+type Success[T any] struct {
+	Value T
+}
+
+func Ok[T any](value T) Result {
+	return &Success[T]{value}
+}
+
+func (r *Success[T]) Failed() bool {
+	return false
+}
+
+type Failure struct {
+	cause   error
 	context []string
+	stack   []string
+	source  []string
 }
 
-func (r *chockResult[T]) Failed() bool {
-	return r.failure != nil
+func (r *Failure) Failed() bool {
+	return true
 }
 
-func (r *chockResult[T]) Value() T {
-	return r.value
+func (r *Failure) Unwrap() error {
+	return r.cause
 }
 
-func (r *chockResult[T]) Unwrap() error {
-	if r.Failed() {
-		return r.failure.err
-	} else {
-		return nil
-	}
-}
-
-func (r *chockResult[T]) Context(val string) Result[T] {
+func (r *Failure) Context(val string) *Failure {
 	r.context = append(r.context, val)
 	return r
 }
 
-func (r *chockResult[T]) Contextf(format string, args ...any) Result[T] {
+func (r *Failure) Contextf(format string, args ...any) *Failure {
 	r.context = append(r.context, fmt.Sprintf(format, args...))
 	return r
 }
 
-func (r *chockResult[T]) Error() string {
-	if r.Failed() {
-		sb := &strings.Builder{}
-		sb.WriteString("\nCause: \"")
-		sb.WriteString(r.Unwrap().Error())
-		sb.WriteString("\"\n")
+func (r *Failure) Error() string {
+	sb := &strings.Builder{}
+	sb.WriteString("\nCause: \"")
+	sb.WriteString(r.cause.Error())
+	sb.WriteString("\"\n")
 
-		if TraceFlags[ENV_INCL_CTX] && len(r.context) > 0 {
-			writeStrings(sb, "Context", r.context, false)
-		}
-		if TraceFlags[ENV_INCL_STACK] {
-			writeStrings(sb, "Stack", r.failure.stack, false)
-		}
-		if TraceFlags[ENV_INCL_SOURCE] {
-			writeStrings(sb, "Source", r.failure.source, true)
-		}
-		return sb.String()
-	} else {
-		return ""
+	if TraceFlags[ENV_INCL_CTX] && len(r.context) > 0 {
+		writeStrings(sb, "Context", r.context, false)
 	}
+	if TraceFlags[ENV_INCL_STACK] {
+		writeStrings(sb, "Stack", r.stack, false)
+	}
+	if TraceFlags[ENV_INCL_SOURCE] {
+		writeStrings(sb, "Source", r.source, true)
+	}
+	return sb.String()
 }
 
-func Success[T any](value T) Result[T] {
-	return &chockResult[T]{value, nil, nil}
-}
+func Error(cause error) Result {
 
-func Failure[T any](cause error) Result[T] {
-	var zero T
-	err := &chockResult[T]{zero, &chockError{cause, nil, nil}, nil}
+	err := &Failure{cause, nil, nil, nil}
 	if TraceFlags[ENV_INCL_STACK] {
 		var ptrs [64]uintptr
 		count := runtime.Callers(2, ptrs[:]) // '2' skips frames until our caller
@@ -135,7 +121,7 @@ func Failure[T any](cause error) Result[T] {
 			frames := runtime.CallersFrames(ptrs[:count])
 			top := true
 			for frame, hasMore := frames.Next(); hasMore; frame, hasMore = frames.Next() {
-				err.failure.stack = append(err.failure.stack, fmt.Sprintf("(%s:%d) %s", frame.File, frame.Line, frame.Function))
+				err.stack = append(err.stack, fmt.Sprintf("(%s:%d) %s", frame.File, frame.Line, frame.Function))
 				if top {
 					if TraceFlags[ENV_INCL_SOURCE] {
 						if file, e := os.Open(frame.File); e == nil {
@@ -146,11 +132,11 @@ func Failure[T any](cause error) Result[T] {
 								scanner.Scan()
 							}
 							scanner.Scan()
-							err.failure.source = append(err.failure.source, "   "+scanner.Text())
+							err.source = append(err.source, "   "+scanner.Text())
 							scanner.Scan()
-							err.failure.source = append(err.failure.source, " * "+scanner.Text())
+							err.source = append(err.source, " * "+scanner.Text())
 							if scanner.Scan() {
-								err.failure.source = append(err.failure.source, "   "+scanner.Text())
+								err.source = append(err.source, "   "+scanner.Text())
 							}
 						}
 					}
@@ -162,10 +148,10 @@ func Failure[T any](cause error) Result[T] {
 	return err
 }
 
-func ResultOf[T any](value T, err error) Result[T] {
+func ResultOf[T any](value T, err error) Result {
 	if err != nil {
-		return Failure[T](err)
+		return Error(err)
 	} else {
-		return Success(value)
+		return Ok(value)
 	}
 }
