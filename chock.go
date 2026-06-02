@@ -28,7 +28,7 @@ func init() {
 }
 
 func RefreshConfig() {
-	for envVar, _ := range TraceFlags {
+	for envVar := range TraceFlags {
 		if val, err := strconv.ParseBool(os.Getenv(envVar)); err == nil {
 			TraceFlags[envVar] = val
 		}
@@ -52,7 +52,7 @@ func writeStrings(sb *strings.Builder, label string, lines []string, block bool)
 	}
 }
 
-type Result interface {
+type Result[T any] interface {
 	Failed() bool
 }
 
@@ -60,7 +60,7 @@ type Success[T any] struct {
 	Value T
 }
 
-func Ok[T any](value T) Result {
+func Ok[T any](value T) Result[T] {
 	return &Success[T]{value}
 }
 
@@ -83,14 +83,13 @@ func (r *Failure) Unwrap() error {
 	return r.cause
 }
 
-func (r *Failure) Context(val string) *Failure {
+func (r *Failure) WithContext(val string) *Failure {
 	r.context = append(r.context, val)
 	return r
 }
 
-func (r *Failure) Contextf(format string, args ...any) *Failure {
-	r.context = append(r.context, fmt.Sprintf(format, args...))
-	return r
+func (r *Failure) WithContextf(format string, args ...any) *Failure {
+	return r.WithContext(fmt.Sprintf(format, args...))
 }
 
 func (r *Failure) Error() string {
@@ -103,15 +102,19 @@ func (r *Failure) Error() string {
 		writeStrings(sb, "Context", r.context, false)
 	}
 	if TraceFlags[ENV_INCL_STACK] {
-		writeStrings(sb, "Stack", r.stack, false)
+		writeStrings(sb, "Stacktrace", r.stack, false)
 	}
 	if TraceFlags[ENV_INCL_SOURCE] {
-		writeStrings(sb, "Source", r.source, true)
+		writeStrings(sb, "Source", r.source, false)
 	}
 	return sb.String()
 }
 
-func Error(cause error) Result {
+func Wrap(cause error) *Failure {
+
+	if failure, ok := cause.(*Failure); ok {
+		return failure
+	}
 
 	err := &Failure{cause, nil, nil, nil}
 	if TraceFlags[ENV_INCL_STACK] {
@@ -132,11 +135,11 @@ func Error(cause error) Result {
 								scanner.Scan()
 							}
 							scanner.Scan()
-							err.source = append(err.source, "   "+scanner.Text())
+							err.source = append(err.source, "  "+scanner.Text())
 							scanner.Scan()
-							err.source = append(err.source, " * "+scanner.Text())
+							err.source = append(err.source, ">>"+scanner.Text())
 							if scanner.Scan() {
-								err.source = append(err.source, "   "+scanner.Text())
+								err.source = append(err.source, "  "+scanner.Text())
 							}
 						}
 					}
@@ -148,10 +151,26 @@ func Error(cause error) Result {
 	return err
 }
 
-func ResultOf[T any](value T, err error) Result {
+func ResultOf[T any](value T, err error) Result[T] {
 	if err != nil {
-		return Error(err)
+		return Wrap(err)
 	} else {
 		return Ok(value)
+	}
+}
+
+func Failed[T any](result Result[T]) *Failure {
+	if result.Failed() {
+		return result.(*Failure)
+	} else {
+		return nil
+	}
+}
+
+func Succeeded[T any](result Result[T]) *Success[T] {
+	if !result.Failed() {
+		return result.(*Success[T])
+	} else {
+		return nil
 	}
 }

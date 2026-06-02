@@ -13,7 +13,7 @@ import (
 func TestSuccess(t *testing.T) {
 	r := Ok(42)
 
-	if r.Failed() || r.(*Success[int]).Value != 42 {
+	if r.Failed() || Succeeded(r).Value != 42 {
 		t.Errorf("result failed. It should have passed with 42")
 	}
 }
@@ -22,7 +22,7 @@ func TestPlainFailure(t *testing.T) {
 	if r := sourceOfFailure(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.(*Failure).Error())
+		t.Logf("%v\n", Failed(r))
 	}
 }
 
@@ -30,7 +30,7 @@ func TestFailureWithContext(t *testing.T) {
 	if r := intermediateFunc(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		t.Logf("%v\n", r.(*Failure).Context("running TestFailureWithContext").Error())
+		t.Logf("%v\n", Failed(r).WithContext("running TestFailureWithContext").Error())
 	}
 }
 
@@ -45,7 +45,7 @@ func TestFlags(t *testing.T) {
 	if r := intermediateFunc(); !r.Failed() {
 		t.Errorf("result succeeded. It should have failed")
 	} else {
-		err := r.(*Failure).Context("running TestFlags")
+		err := Failed(r).WithContext("running TestFlags")
 		errStr := err.Error()
 		if strings.Contains(errStr, "Context:") {
 			t.Errorf("error contains context. It should not have")
@@ -61,24 +61,24 @@ func TestResultOf(t *testing.T) {
 	if result := ResultOf(funcThatSucceeds()); result.Failed() {
 		t.Error("Test funcThatSucceeds should have passed")
 	} else {
-		t.Logf("Succeeded as expected: %d", result.(*Success[int]).Value)
+		t.Logf("Succeeded as expected: %d", Succeeded(result).Value)
 	}
 
 	if result := ResultOf(funcThatFails()); !result.Failed() {
 		t.Error("Test funcThatFails should have failed")
 	} else {
-		t.Logf("Failed as expected: %v", result.(*Failure).Context("Doing funcThatFails"))
+		t.Logf("Failed as expected: %v", Failed(result).WithContext("Doing funcThatFails"))
 	}
 }
 
-func sourceOfFailure() Result {
-	return Error(fmt.Errorf("An error has occurred"))
+func sourceOfFailure() Result[int] {
+	return Wrap(fmt.Errorf("An error has occurred"))
 }
 
-func intermediateFunc() Result {
+func intermediateFunc() Result[int] {
 	r := sourceOfFailure()
 	if r.Failed() {
-		return r.(*Failure).Context("calling myOtherFunctionThatFails")
+		return Failed(r).WithContext("calling myOtherFunctionThatFails")
 	} else {
 		return r
 	}
