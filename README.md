@@ -12,17 +12,17 @@ import "github.com/kitd/chock"
 
 func someFunctionThatMightFail(arg0 string) chock.Result[int] {
     if intVal, err := somepkg.MyIntFunction(arg0); err != nil {
-        return chock.Failure[int](err).Contextf("arg0 = %s", arg0)
+        return chock.Wrap(err).WithContextf("arg0 = %s", arg0)
     } else {
-        return chock.Success(intVal)
+        return chock.Ok(intVal)
     }
 }
 
 func anotherFunction() chock.Result[int] {
     if r := someFunctionThatMightFail("xyz"); r.Failed() {
-        return r.Context("foo = bar")
+        return Failed(r).WithContext("foo = bar")
     } else {
-        doSomethingWith(r.Value())
+        doSomethingWith(Succeeded(r).Value)
     }
 }
 ```
@@ -30,13 +30,13 @@ func anotherFunction() chock.Result[int] {
 Usage with functions that return a tuple of `(T, error)`:
 ```go
 if readFile := chock.ResultOf(ioutils.ReadFile("myFile")); readFile.Failed() {
-    return readFile.Context("Trying to read myFile")
+    return Failed(readFile).WithContext("Trying to read myFile")
 } else {
-    fmt.println(string(readFile.Value()[:]))
+    fmt.println(string(Succeeded(readFile).Value[:]))
 }
 ```
 
-Actual errors are wrapped in an internal error that incorporates a stack trace (from the point where `chock.Failure(cause)` is called), and allows context to be added before the result is returned, eg:
+Actual errors are wrapped in an internal error that incorporates a stack trace (from the point where `chock.Wrap(cause)` is called), and allows context to be added before the result is returned, eg:
 ```yaml
     chock_test.go:33: 
         Cause: "An error has occurred"
@@ -57,8 +57,8 @@ You can switch off the display of the stack by setting the `CHOCK_INCL_STACK` en
 If you set the `CHOCK_INCL_SOURCE` env var to true, it will display the source line of the top stack frame, along with the preceding and succeeding lines. Eg:
 ```yaml
     Source:
-    -    func sourceOfFailure[T any]() *chock.Result[T] {
-    - =>    return chock.Failure[T](fmt.Errorf("An error has occurred"))
+    -    func sourceOfFailure[T any]() chock.Result[T] {
+    - =>    return chock.Wrap(fmt.Errorf("An error has occurred"))
     -    }
 ```
 Note that this only really makes sense in testing as the source code will probably not be available in production.
